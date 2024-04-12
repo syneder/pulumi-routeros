@@ -26,8 +26,8 @@ namespace Pulumi.RouterOS
 
         public static IServiceCollection ConfigureProviderServices(IServiceCollection services, IHost providerHost)
         {
-            services.AddSingleton(providerHost);
             services.AddScoped<Provider, Core.Provider>();
+            services.AddScoped<Extensions.Provider.ProviderContext, Core.ProviderContext>();
             return services;
         }
     }

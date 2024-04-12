@@ -24,7 +24,11 @@ namespace Pulumi.RouterOS.Commands
         {
             return Provider.Serve(args, null, providerHost =>
             {
-                var serviceProvider = Startup.ConfigureProviderServices(_services, providerHost).BuildServiceProvider();
+                var serviceProvider = Startup.ConfigureProviderServices(_services, providerHost)
+                    .AddSingleton<IList<ServiceDescriptor>>(_services.AsReadOnly())
+                    .AddSingleton(providerHost)
+                    .BuildServiceProvider();
+
                 return serviceProvider.GetRequiredService<Provider>();
             }, cancellationToken);
         }
