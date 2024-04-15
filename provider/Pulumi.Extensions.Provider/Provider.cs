@@ -1,15 +1,18 @@
 using Pulumi.Experimental.Provider;
+using Pulumi.Extensions.Provider.Models;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Pulumi.Extensions.Provider
 {
-    public abstract class Provider(ProviderContext context) : Experimental.Provider.Provider
+    public abstract partial class Provider(ProviderContext context) : Experimental.Provider.Provider
     {
         public override Task<ConfigureResponse> Configure(ConfigureRequest request, CancellationToken cancellationToken)
         {
             return Task.FromResult(new ConfigureResponse { });
         }
 
-        public override Task<CheckResponse> Check(CheckRequest request, CancellationToken ct)
+        public override Task<CheckResponse> Check(CheckRequest request, CancellationToken cancellationToken)
         {
             return Task.FromResult(new CheckResponse
             {
@@ -47,11 +50,28 @@ namespace Pulumi.Extensions.Provider
             return base.Delete(request, cancellationToken);
         }
 
-        public override Task<GetSchemaResponse> GetSchema(GetSchemaRequest request, CancellationToken cancellationToken)
+        public override async Task<GetSchemaResponse> GetSchema(GetSchemaRequest request, CancellationToken cancellationToken)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(new GetSchemaResponse { Schema = context.Schema });
+            return new GetSchemaResponse
+            {
+                Schema = await SerializeSchemaAsync(context.Schema, cancellationToken)
+            };
         }
+
+        protected virtual async Task<string> SerializeSchemaAsync(ProviderSchema schema, CancellationToken cancellationToken)
+        {
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, schema, GetSchemaSerializerOptions(), cancellationToken);
+
+            stream.Position = 0;
+            using var streamReader = new StreamReader(stream);
+            return await streamReader.ReadToEndAsync(cancellationToken);
+        }
+
+        protected virtual JsonSerializerOptions GetSchemaSerializerOptions() => new()
+        {
+            TypeInfoResolver = SerializerContext.Default
+        };
 
         private async Task<CreateResponse> CreateAsync(CreateRequest request, CancellationToken cancellationToken)
         {
@@ -64,5 +84,9 @@ namespace Pulumi.Extensions.Provider
                 Properties = resource.GetOutputs(),
             };
         }
+
+        [JsonSerializable(typeof(ProviderSchema), GenerationMode = JsonSourceGenerationMode.Serialization)]
+        [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, WriteIndented = true)]
+        private partial class SerializerContext : JsonSerializerContext { }
     }
 }

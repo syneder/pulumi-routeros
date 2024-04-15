@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Pulumi.Experimental.Provider;
+using Pulumi.Extensions.Provider.Models;
 using System.Diagnostics;
 
 namespace Pulumi.Extensions.Provider
@@ -12,7 +13,7 @@ namespace Pulumi.Extensions.Provider
         private readonly Dictionary<string, ResourceDescriptor> _resourceDescriptors = [];
         private ServiceProvider? _resourceInstanceFactory;
 
-        public abstract string Schema { get; }
+        public abstract ProviderSchema Schema { get; }
 
         public virtual Resource CreateResourceInstance(string resourceType, PropertiesDictionary properties)
         {
